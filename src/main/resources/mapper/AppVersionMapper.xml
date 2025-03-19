@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.debug.fresh.mapper.AppVersionMapper">
+
+    <resultMap id="BaseResultMap" type="com.debug.fresh.pojo.AppVersion">
+            <id property="versionId" column="version_id" jdbcType="INTEGER"/>
+            <result property="versionNumber" column="version_number" jdbcType="VARCHAR"/>
+            <result property="mandatoryUpdate" column="mandatory_update" jdbcType="TINYINT"/>
+            <result property="downloadUrl" column="download_url" jdbcType="VARCHAR"/>
+            <result property="releaseNotes" column="release_notes" jdbcType="VARCHAR"/>
+            <result property="publishedAt" column="published_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        version_id,version_number,mandatory_update,
+        download_url,release_notes,published_at
+    </sql>
+</mapper>

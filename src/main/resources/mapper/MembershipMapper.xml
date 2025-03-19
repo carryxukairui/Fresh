@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.debug.fresh.mapper.MembershipMapper">
+
+    <resultMap id="BaseResultMap" type="com.debug.fresh.pojo.Membership">
+            <id property="membershipId" column="membership_id" jdbcType="INTEGER"/>
+            <result property="userId" column="user_id" jdbcType="INTEGER"/>
+            <result property="type" column="type" jdbcType="OTHER"/>
+            <result property="startDate" column="start_date" jdbcType="TIMESTAMP"/>
+            <result property="endDate" column="end_date" jdbcType="TIMESTAMP"/>
+            <result property="rewardDays" column="reward_days" jdbcType="INTEGER"/>
+            <result property="maxRewardDays" column="max_reward_days" jdbcType="INTEGER"/>
+            <result property="source" column="source" jdbcType="OTHER"/>
+            <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        membership_id,user_id,type,
+        start_date,end_date,reward_days,
+        max_reward_days,source,created_at
+    </sql>
+</mapper>

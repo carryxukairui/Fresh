@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.debug.fresh.mapper.InvitationRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.debug.fresh.pojo.InvitationRecord">
+            <id property="recordId" column="record_id" jdbcType="INTEGER"/>
+            <result property="inviterId" column="inviter_id" jdbcType="INTEGER"/>
+            <result property="inviteeId" column="invitee_id" jdbcType="INTEGER"/>
+            <result property="usedCode" column="used_code" jdbcType="VARCHAR"/>
+            <result property="rewardStatus" column="reward_status" jdbcType="OTHER"/>
+            <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+            <result property="rewardedAt" column="rewarded_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        record_id,inviter_id,invitee_id,
+        used_code,reward_status,created_at,
+        rewarded_at
+    </sql>
+</mapper>
