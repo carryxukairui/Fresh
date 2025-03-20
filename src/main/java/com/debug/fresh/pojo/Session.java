@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="session")
 @Data
 public class Session {
+    @TableId
     private Integer sessionId;
 
     private Integer userId;
@@ -30,4 +31,6 @@ public class Session {
     private String ipAddress;
 
     private String clientInfo;
+
+    private Integer loginSequence;
 }

@@ -12,6 +12,7 @@ public enum ResultCodeEnum {
     NOTLOGIN(504,"notLogin"),
     USERNAME_USED(505,"userNameUsed");
 
+    public static final String TOKEN_EXPIRED = "token已过期";
     private Integer code;
     private String message;
     private ResultCodeEnum(Integer code, String message) {
