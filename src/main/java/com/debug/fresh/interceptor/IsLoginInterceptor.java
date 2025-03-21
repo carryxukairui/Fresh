@@ -1,4 +1,4 @@
-package com.debug.fresh.controller.interceptor;
+package com.debug.fresh.interceptor;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.debug.fresh.model.Result;

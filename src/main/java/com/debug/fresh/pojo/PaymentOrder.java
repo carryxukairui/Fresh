@@ -14,6 +14,7 @@ import lombok.Data;
 @TableName(value ="payment_order")
 @Data
 public class PaymentOrder {
+    @TableId
     private String orderId;
 
     private Integer userId;

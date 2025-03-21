@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="reminder")
 @Data
 public class Reminder {
+    @TableId
     private Integer reminderId;
 
     private Integer itemId;

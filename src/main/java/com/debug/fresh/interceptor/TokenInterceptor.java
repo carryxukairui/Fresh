@@ -1,4 +1,4 @@
-package com.debug.fresh.controller.interceptor;
+package com.debug.fresh.interceptor;
 
 import com.debug.fresh.util.JwtHelper;
 import jakarta.servlet.http.HttpServletRequest;

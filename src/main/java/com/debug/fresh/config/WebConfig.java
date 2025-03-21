@@ -1,6 +1,6 @@
-package com.debug.fresh.controller.config;
+package com.debug.fresh.config;
 
-import com.debug.fresh.controller.interceptor.IsLoginInterceptor;
+import com.debug.fresh.interceptor.IsLoginInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;

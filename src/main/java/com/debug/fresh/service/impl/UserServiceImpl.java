@@ -16,11 +16,13 @@ import com.debug.fresh.pojo.User;
 import com.debug.fresh.service.UserService;
 import com.debug.fresh.mapper.UserMapper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService{
@@ -46,12 +48,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if(!MD5Util.encrypt(userLoginByPasswordVo.getPassword()).equals(user.getPasswordHash()))
             return Result.error("密码错误");
         Integer userId = user.getUserId();
-        StpUtil.login(userId);
+
         // 获取设备唯一标识、IP 地址、客户端信息等
         String deviceHash = UUID.randomUUID().toString();  // 你可以根据设备的唯一标识生成哈希值
         String ipAddress = getClientIpAddress();  // 获取客户端 IP 地址 服务器根据请求自动获取的，无需客户端传递。
         String clientInfo = getClientInfo();  // 获取客户端信息
 
+        handleMultiDeviceLogin(user.getUserId(), deviceHash);
+        StpUtil.login(userId);
         service.createSession(userId,StpUtil.getTokenValue(),deviceHash,ipAddress,clientInfo);
 
         return Result.success("登录成功", StpUtil.getTokenValue());
@@ -59,8 +63,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> register(String password) {
-        Integer loginId = (Integer) StpUtil.getLoginId();
-        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUserId, loginId));
+        Long userId = StpUtil.getLoginIdAsLong();
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUserId, userId));
         if (user == null) {
             return Result.error("用户不存在");
         }
@@ -79,7 +83,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (!"123".equals(code))
             return Result.error("验证码错误");
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, phone));
-
         // 登录自动创建账号
         if (user == null) {
             user = new User();
@@ -93,7 +96,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String deviceHash = UUID.randomUUID().toString();  // 你可以根据设备的唯一标识生成哈希值
         String ipAddress = getClientIpAddress();  // 获取客户端 IP 地址 服务器根据请求自动获取的，无需客户端传递。
         String clientInfo = getClientInfo();  // 获取客户端信息
-
 
         handleMultiDeviceLogin(user.getUserId(), deviceHash);
         StpUtil.login(user.getUserId());

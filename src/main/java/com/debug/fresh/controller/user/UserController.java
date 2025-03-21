@@ -27,9 +27,9 @@ public class UserController {
         return userService.loginByCode(userLoginByPasswordVo);
     }
 
-    @PostMapping("register")
-    public Result<?> register(@RequestBody String password) {
-        return userService.register(password);
+    @PostMapping("/register")
+    public Result<?> register(@RequestBody UserLoginByPasswordVo userLoginByPasswordVo) {
+        return userService.register(userLoginByPasswordVo.getPassword());
     }
 
 

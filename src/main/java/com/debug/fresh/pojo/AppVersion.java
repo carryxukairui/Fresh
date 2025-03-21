@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="app_version")
 @Data
 public class AppVersion {
+    @TableId
     private Integer versionId;
 
     private String versionNumber;
