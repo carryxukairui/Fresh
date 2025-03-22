@@ -3,7 +3,7 @@ package com.debug.fresh.controller.user.vo;
 import lombok.Data;
 
 @Data
-public class UserDto {
+public class UserLoginByPasswordVo {
     private String phone;
     private String password;
 }

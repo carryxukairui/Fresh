@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="user")
 @Data
 public class User {
+    @TableId
     private Integer userId;
 
     private String phone;

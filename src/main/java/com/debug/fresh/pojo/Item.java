@@ -14,6 +14,7 @@ import lombok.Data;
 @TableName(value ="item")
 @Data
 public class Item {
+    @TableId
     private Integer itemId;
 
     private Integer userId;

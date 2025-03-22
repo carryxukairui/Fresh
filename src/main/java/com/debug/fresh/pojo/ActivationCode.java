@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="activation_code")
 @Data
 public class ActivationCode {
+    @TableId
     private Integer codeId;
 
     private String code;
