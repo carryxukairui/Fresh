@@ -17,7 +17,4 @@ class FreshApplicationTests {
         boolean equals = MD5Util.encrypt(p).equals(encrypt);
         System.out.println(equals);
     }
-    git checkout --orphan newb
-
-
 }
