@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.debug.fresh.mapper.ReminderMapper">
+
+    <resultMap id="BaseResultMap" type="com.debug.fresh.pojo.Reminder">
+            <id property="reminderId" column="reminder_id" jdbcType="INTEGER"/>
+            <result property="itemId" column="item_id" jdbcType="INTEGER"/>
+            <result property="triggerTime" column="trigger_time" jdbcType="TIMESTAMP"/>
+            <result property="type" column="type" jdbcType="OTHER"/>
+            <result property="repeatInterval" column="repeat_interval" jdbcType="INTEGER"/>
+            <result property="repeatUnit" column="repeat_unit" jdbcType="OTHER"/>
+            <result property="advanceDays" column="advance_days" jdbcType="INTEGER"/>
+            <result property="isTriggered" column="is_triggered" jdbcType="TINYINT"/>
+            <result property="nextTrigger" column="next_trigger" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        reminder_id,item_id,trigger_time,
+        type,repeat_interval,repeat_unit,
+        advance_days,is_triggered,next_trigger
+    </sql>
+</mapper>

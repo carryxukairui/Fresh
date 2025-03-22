@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.debug.fresh.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.debug.fresh.pojo.User">
+            <id property="userId" column="user_id" jdbcType="INTEGER"/>
+            <result property="phone" column="phone" jdbcType="VARCHAR"/>
+            <result property="passwordHash" column="password_hash" jdbcType="VARCHAR"/>
+            <result property="nickname" column="nickname" jdbcType="VARCHAR"/>
+            <result property="avatarUrl" column="avatar_url" jdbcType="VARCHAR"/>
+            <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+            <result property="lastLogin" column="last_login" jdbcType="TIMESTAMP"/>
+            <result property="membershipId" column="membership_id" jdbcType="INTEGER"/>
+            <result property="daysUsed" column="days_used" jdbcType="INTEGER"/>
+            <result property="allowAutoUpdate" column="allow_auto_update" jdbcType="TINYINT"/>
+            <result property="invitationCode" column="invitation_code" jdbcType="VARCHAR"/>
+            <result property="invitedBy" column="invited_by" jdbcType="INTEGER"/>
+            <result property="invitationCodeExpire" column="invitation_code_expire" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        user_id,phone,password_hash,
+        nickname,avatar_url,created_at,
+        last_login,membership_id,days_used,
+        allow_auto_update,invitation_code,invited_by,
+        invitation_code_expire
+    </sql>
+</mapper>

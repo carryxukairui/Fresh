@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.debug.fresh.mapper.CategoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.debug.fresh.pojo.Category">
+            <id property="categoryId" column="category_id" jdbcType="INTEGER"/>
+            <result property="name" column="name" jdbcType="VARCHAR"/>
+            <result property="parentId" column="parent_id" jdbcType="INTEGER"/>
+            <result property="level" column="level" jdbcType="TINYINT"/>
+            <result property="isSystem" column="is_system" jdbcType="TINYINT"/>
+            <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        category_id,name,parent_id,
+        level,is_system,created_at
+    </sql>
+</mapper>
