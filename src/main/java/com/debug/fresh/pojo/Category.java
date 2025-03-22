@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="category")
 @Data
 public class Category {
+    @TableId
     private Integer categoryId;
 
     private String name;

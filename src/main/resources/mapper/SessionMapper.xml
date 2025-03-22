@@ -14,11 +14,16 @@
             <result property="isValid" column="is_valid" jdbcType="TINYINT"/>
             <result property="ipAddress" column="ip_address" jdbcType="VARCHAR"/>
             <result property="clientInfo" column="client_info" jdbcType="VARCHAR"/>
+            <result property="loginSequence" column="login_sequence" jdbcType="INTEGER"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         session_id,user_id,device_hash,
         token,login_time,last_active,
-        is_valid,ip_address,client_info
+        is_valid,ip_address,client_info,
+        login_sequence
     </sql>
+    <select id="selectMaxLoginSequence" resultType="java.lang.Integer">
+        select max(login_sequence) from session where user_id = #{userId}
+    </select>
 </mapper>

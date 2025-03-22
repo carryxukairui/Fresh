@@ -13,6 +13,7 @@ import lombok.Data;
 @TableName(value ="invitation_record")
 @Data
 public class InvitationRecord {
+    @TableId
     private Integer recordId;
 
     private Integer inviterId;
