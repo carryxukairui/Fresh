@@ -18,7 +18,7 @@ public class Membership {
 
     private Integer userId;
 
-    private Object type;
+    private Integer type;
 
     private Date startDate;
 

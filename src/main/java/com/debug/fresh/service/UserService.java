@@ -4,6 +4,7 @@ import com.debug.fresh.controller.user.vo.*;
 import com.debug.fresh.model.Result;
 import com.debug.fresh.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
 * @author 28611
@@ -23,4 +24,11 @@ public interface UserService extends IService<User> {
     Result<?> logout(UserLogoutVo logoutVo);
 
     Result<?> renewPassword(UserRenewPasswordVo userRenewPasswordVo);
+
+    /**
+     * 每天凌晨 00:00 触发，更新活跃用户的使用天数
+     */
+    void updateDaysUsed();
+
+    Result<?> queryUserInfo();
 }

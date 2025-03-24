@@ -28,7 +28,6 @@ public class User {
 
     private Date lastLogin;
 
-    private Integer membershipId;
 
     private Integer daysUsed;
 

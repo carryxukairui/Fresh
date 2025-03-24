@@ -6,11 +6,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.debug.fresh.config.WebSocketService;
+import com.debug.fresh.controller.my.Response.UserInfoResponseDto;
 import com.debug.fresh.controller.user.SmsService;
 import com.debug.fresh.controller.user.vo.*;
 import com.debug.fresh.mapper.SessionMapper;
 import com.debug.fresh.model.Result;
 import com.debug.fresh.pojo.Session;
+import com.debug.fresh.service.MembershipService;
 import com.debug.fresh.service.SessionService;
 import com.debug.fresh.util.MD5Util;
 import com.debug.fresh.pojo.User;
@@ -18,6 +20,7 @@ import com.debug.fresh.service.UserService;
 import com.debug.fresh.mapper.UserMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,6 +41,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     private SmsService smsService;
     @Resource
     private WebSocketService webSocketService;
+    @Resource
+    private MembershipService membershipService;
 
     @Override
     public Result loginByPassword(UserLoginByPasswordVo userLoginByPasswordVo) {
@@ -212,7 +217,36 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
 
+    /**
+     * 每天凌晨 00:00 触发，更新用户的使用天数
+     */
+    @Scheduled(cron = "0 0 0 * * ?") // 每天 00:00 触发
+    public void updateDaysUsed() {
+        int updatedRows = userMapper.incrementDaysUsedForAllUsers();
+        System.out.println("成功更新 " + updatedRows + " 名活跃用户的使用天数！");
+    }
 
+    @Override
+    public Result<?> queryUserInfo() {
+        Integer userId = StpUtil.getLoginIdAsInt();
+        if (userId == null) {
+            return Result.error("未登录");
+        }
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getUserId, userId));
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        UserInfoResponseDto userInfoResponseDto = new UserInfoResponseDto();
+        userInfoResponseDto.setUserName(user.getNickname());
+        userInfoResponseDto.setPhoto(user.getAvatarUrl());
+       userInfoResponseDto.setUseDate(user.getDaysUsed()+"天");
+       //是否是会员
+        String remainTime = membershipService.remainTime(userId);
+        userInfoResponseDto.setMerDate(remainTime);
+
+        return Result.success("查询信息成功", userInfoResponseDto);
+    }
 
     private String getClientIpAddress() {
         // 通过请求上下文获取客户端 IP 地址
