@@ -1,9 +1,7 @@
 package com.debug.fresh.controller.user;
 
 
-import com.debug.fresh.controller.user.vo.CodeVo;
-import com.debug.fresh.controller.user.vo.UserLoginByCodeDto;
-import com.debug.fresh.controller.user.vo.UserLoginByPasswordVo;
+import com.debug.fresh.controller.user.vo.*;
 import com.debug.fresh.model.Result;
 import com.debug.fresh.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,5 +36,16 @@ public class UserController {
         return userService.sendCode(codeVo);
     }
 
+    @PostMapping("/logout")
+    public Result<?> logout(@RequestBody UserLogoutVo logoutVo) {
+        return userService.logout(logoutVo);
+    }
+
+
+    //修改密码
+    @PostMapping("/renewPassword")
+    public Result<?> renewPassword(@RequestParam UserRenewPasswordVo userRenewPasswordVo) {
+        return userService.renewPassword(userRenewPasswordVo);
+    }
 
 }

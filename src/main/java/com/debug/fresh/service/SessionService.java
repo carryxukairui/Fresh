@@ -11,4 +11,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface SessionService extends IService<Session> {
 
     void createSession(Integer userId, String tokenValue, String deviceHash, String ipAddress, String clientInfo);
+
+    boolean logoutDevice(String deviceHash);
+
+    void invalidateUserSessions(Integer userId);
 }

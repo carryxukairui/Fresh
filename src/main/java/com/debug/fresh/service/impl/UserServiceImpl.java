@@ -5,15 +5,14 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.debug.fresh.config.WebSocketService;
 import com.debug.fresh.controller.user.SmsService;
-import com.debug.fresh.controller.user.vo.CodeVo;
-import com.debug.fresh.controller.user.vo.UserLoginByCodeDto;
+import com.debug.fresh.controller.user.vo.*;
 import com.debug.fresh.mapper.SessionMapper;
 import com.debug.fresh.model.Result;
 import com.debug.fresh.pojo.Session;
 import com.debug.fresh.service.SessionService;
 import com.debug.fresh.util.MD5Util;
-import com.debug.fresh.controller.user.vo.UserLoginByPasswordVo;
 import com.debug.fresh.pojo.User;
 import com.debug.fresh.service.UserService;
 import com.debug.fresh.mapper.UserMapper;
@@ -37,6 +36,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     private SessionMapper sessionMapper;
     @Resource
     private SmsService smsService;
+    @Resource
+    private WebSocketService webSocketService;
 
     @Override
     public Result loginByPassword(UserLoginByPasswordVo userLoginByPasswordVo) {
@@ -90,7 +91,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public Result loginByCode(UserLoginByCodeDto userLoginByCodeVo) {
         String phone = userLoginByCodeVo.getPhone();
         String code = userLoginByCodeVo.getCode();
-
+        String returnData = "老用户";
         // 校验手机号格式，必须是 +86 开头，并且是 11 位中国手机号
         if (!phone.matches("^\\+86[1-9]\\d{10}$")) {
             return Result.error("手机号格式不正确，必须以 +86 开头，且为 11 位有效手机号");
@@ -108,6 +109,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             user.setPhone(purePhone);
             user.setNickname("用户:" + purePhone);
             userMapper.insert(user);
+            returnData = "新用户";
         }
 
         // 获取设备唯一标识、IP 地址、客户端信息
@@ -122,12 +124,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         service.createSession(user.getUserId(), StpUtil.getTokenValue(), deviceHash, ipAddress, clientInfo);
 
         smsService.deleteCode(purePhone);
-        return Result.success("登录成功", StpUtil.getTokenValue());
+        return Result.success("登录成功", returnData);
     }
 
     @Override
     public Result<?> sendCode(CodeVo codeVo) {
         String phone = codeVo.getPhone();
+        if (!phone.matches("^[1-9]\\d{10}$")) {
+            return Result.error("手机号格式不正确，需 11 位有效手机号");
+        }
         int flag = smsService.sendSms(phone, codeVo.getTimestamp(), codeVo.getSign());
         if (flag==-1){
             return Result.error("请求超时，请重试");
@@ -135,6 +140,48 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.error("非法请求");
         }
         return Result.success("验证码发送成功");
+    }
+
+    @Override
+    public Result<?> logout(UserLogoutVo logoutVo) {
+        if(!StpUtil.isLogin())
+            return Result.error("未登录");
+        Integer userId = logoutVo.getUserId();
+        String deviceHash = logoutVo.getDeviceHash();
+
+        if (userId == null || deviceHash == null) {
+            return Result.error("userId和deviceHash不能为空");
+        }
+
+        boolean success = service.logoutDevice(deviceHash);  // 这里调用 sessionService 来处理
+        if (success) {
+            return Result.success("注销成功");
+        } else {
+            return Result.error("注销失败");
+        }
+    }
+
+    @Override
+    public Result<?> renewPassword(UserRenewPasswordVo userRenewPasswordVo) {
+        String nowPassword =MD5Util.encrypt(userRenewPasswordVo.getPassword());
+        Integer userId = userRenewPasswordVo.getUserId();
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUserId, userId));
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        String oldPasswordHash = user.getPasswordHash();
+        if (user.getPasswordHash() == null) {
+            return Result.error("未设置密码");
+        }
+        if (nowPassword.equals(oldPasswordHash)){
+            return Result.error("新密码不能与旧密码一致");
+        }
+        user.setPasswordHash(nowPassword);
+        userMapper.updateById(user);
+
+        //所有设备退出登录
+        service.invalidateUserSessions(userId);
+        return Result.success("修改密码成功");
     }
 
     private void handleMultiDeviceLogin(Integer userId, String newDeviceHash) {
@@ -151,10 +198,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
                     .orderByAsc(Session::getLoginSequence)
                     .last("LIMIT 1"));
 
-            // 使旧token失效
-            StpUtil.kickout(oldest.getSessionId());
-            oldest.setIsValid(0);
-            sessionMapper.updateById(oldest);
+            if (oldest != null) {
+                String token = oldest.getToken();
+                // **通过 WebSocket 通知被踢出的设备**
+                webSocketService.sendMessageToUser(token, "您的账号已在其他设备上登录，如非本人操作，请修改密码！");
+
+                // 使旧token失效
+                StpUtil.kickoutByTokenValue(token);
+                oldest.setIsValid(0);
+                sessionMapper.updateById(oldest);
+            }
         }
     }
 

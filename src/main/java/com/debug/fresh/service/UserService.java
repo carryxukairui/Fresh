@@ -1,8 +1,6 @@
 package com.debug.fresh.service;
 
-import com.debug.fresh.controller.user.vo.CodeVo;
-import com.debug.fresh.controller.user.vo.UserLoginByCodeDto;
-import com.debug.fresh.controller.user.vo.UserLoginByPasswordVo;
+import com.debug.fresh.controller.user.vo.*;
 import com.debug.fresh.model.Result;
 import com.debug.fresh.pojo.User;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -21,4 +19,8 @@ public interface UserService extends IService<User> {
     Result loginByCode(UserLoginByCodeDto userLoginByPasswordVo);
 
     Result<?> sendCode(CodeVo code);
+
+    Result<?> logout(UserLogoutVo logoutVo);
+
+    Result<?> renewPassword(UserRenewPasswordVo userRenewPasswordVo);
 }
