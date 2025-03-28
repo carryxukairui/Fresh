@@ -5,9 +5,7 @@ import com.debug.fresh.model.Result;
 import com.debug.fresh.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("my")
@@ -20,5 +18,11 @@ public class MyController {
     public Result<?> getUserInfo() {
         return userService.queryUserInfo();
     }
+
+    @PutMapping("/modifyName")
+    public Result<?> modifyName(@RequestParam("name") String name) {
+        return userService.modifyName(name);
+    }
+
 
 }

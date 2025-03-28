@@ -44,7 +44,7 @@ public class UserController {
 
     //修改密码
     @PostMapping("/renewPassword")
-    public Result<?> renewPassword(@RequestParam UserRenewPasswordVo userRenewPasswordVo) {
+    public Result<?> renewPassword(@RequestBody UserRenewPasswordVo userRenewPasswordVo) {
         return userService.renewPassword(userRenewPasswordVo);
     }
 

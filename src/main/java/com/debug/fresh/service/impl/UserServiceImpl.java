@@ -5,7 +5,7 @@ import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.debug.fresh.config.WebSocketService;
+import com.debug.fresh.webSocket.WebSocketService;
 import com.debug.fresh.controller.my.Response.UserInfoResponseDto;
 import com.debug.fresh.controller.user.SmsService;
 import com.debug.fresh.controller.user.vo.*;
@@ -23,8 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.UUID;
+import static com.debug.fresh.contants.ErrorContants.*;
 
 @Slf4j
 @Service
@@ -208,10 +207,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
             if (oldest != null) {
                 String token = oldest.getToken();
-                // **通过 WebSocket 通知被踢出的设备**
-                webSocketService.sendMessageToUser(token, "您的账号已在其他设备上登录，如非本人操作，请修改密码！");
+                // 先发送通知给被踢设备（单设备通知）
+                webSocketService.sendMessageToToken(token, "kickOut",
+                        "您已被强制下线，如非本人操作，请修改密码！");
 
-                // 使旧token失效
+                // 2. 等待消息发送完成（建议500ms）
+                try { Thread.sleep(500); } catch (InterruptedException e) {}
+
+                // 3. 再执行踢出
                 StpUtil.kickoutByTokenValue(token);
                 oldest.setIsValid(0);
                 sessionMapper.updateById(oldest);
@@ -232,9 +235,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> queryUserInfo() {
-        Integer userId = StpUtil.getLoginIdAsInt();
-        if (userId == null) {
-            return Result.error("未登录");
+        Integer userId ;
+        try {
+            userId = StpUtil.getLoginIdAsInt();
+        } catch (Exception e) {
+            return Result.error(USER_NOT_LOGGED_IN);
         }
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>()
                 .eq(User::getUserId, userId));
@@ -252,6 +257,42 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         return Result.success("查询信息成功", userInfoResponseDto);
     }
+
+
+
+    /*
+     * 修改用户名
+     */
+    @Override
+    public Result<?> modifyName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return Result.error(USER_NAME_NOT_NULL);
+        }
+        if (name.length() > 12) {
+            return Result.error(USER_NAME_TOO_LONG);
+        }
+        Integer userId;
+        try {
+            userId = StpUtil.getLoginIdAsInt();
+        } catch (Exception e) {
+            return Result.error(USER_NOT_LOGGED_IN);
+        }
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUserId, userId));
+        if (user==null){
+            return Result.error(USER_NOT_EXIST);
+        }
+        user.setNickname(name);
+        int updateById = userMapper.updateById(user);
+
+        if (updateById > 0) {
+            // 通知该用户所有在线设备：昵称已更新
+            webSocketService.sendMessageToUser(userId, "nicknameUpdate", "您的昵称已修改为：" + name);
+            return Result.success(USER_NAME_MODIFY_SUCCESS);
+        } else {
+            return Result.error(USER_NAME_MODIFY_FAIL);
+        }
+    }
+
 
     private String getClientIpAddress() {
         // 通过请求上下文获取客户端 IP 地址

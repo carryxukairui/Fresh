@@ -3,7 +3,7 @@ package com.debug.fresh.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.debug.fresh.config.WebSocketService;
+import com.debug.fresh.webSocket.WebSocketService;
 import com.debug.fresh.pojo.Session;
 import com.debug.fresh.service.SessionService;
 import com.debug.fresh.mapper.SessionMapper;
@@ -14,7 +14,7 @@ import java.util.List;
 
 
 /**
-* @author 28611
+* @author karry
 * @description 针对表【session(登录会话表)】的数据库操作Service实现
 * @createDate 2025-03-20 22:13:38
 */
@@ -64,7 +64,13 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
         for (Session session : sessionList) {
             String token = session.getToken();
 
-            webSocketService.sendMessageToUser(token, "密码已修改，请重新登录");
+            // 先发送通知，确保客户端接收到消息
+            webSocketService.sendMessageToToken(token, "passwordChange", "密码已修改，请重新登录");
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             StpUtil.kickoutByTokenValue(token);
 
             session.setIsValid(0);

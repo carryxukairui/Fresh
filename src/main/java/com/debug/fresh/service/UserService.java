@@ -31,4 +31,6 @@ public interface UserService extends IService<User> {
     void updateDaysUsed();
 
     Result<?> queryUserInfo();
+
+    Result<?> modifyName(String name);
 }

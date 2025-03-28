@@ -1,4 +1,4 @@
-package com.debug.fresh.config;
+package com.debug.fresh.webSocket;
 
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnMessage;
@@ -9,7 +9,7 @@ import jakarta.websocket.server.ServerEndpoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-@ServerEndpoint("/websocket/{userId}")
+@ServerEndpoint("/websocket/{userId}/{token}")
 @Component
 public class WebSocketEndpoint {
     private static WebSocketService webSocketService;
@@ -20,13 +20,15 @@ public class WebSocketEndpoint {
     }
 
     @OnOpen
-    public void onOpen(@PathParam("token") String token, Session session) {
-        webSocketService.addUserSession(token, session);
+    public void onOpen(@PathParam("userId") Integer userId,
+                       @PathParam("token") String token,
+                       Session session) {
+        webSocketService.addUserSession(token, userId, session);
     }
 
     @OnMessage
     public void onMessage(String message, Session session) {
-        // 这里可以处理前端发送的消息（如果有的话）
+        // 可根据需要处理前端发送的消息
     }
 
     @OnClose
