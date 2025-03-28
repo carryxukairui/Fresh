@@ -6,4 +6,5 @@ import lombok.Data;
 public class UserLoginByPasswordVo {
     private String phone;
     private String password;
+    private String deviceHash;
 }

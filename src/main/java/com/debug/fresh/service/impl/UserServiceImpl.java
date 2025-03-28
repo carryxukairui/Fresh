@@ -61,12 +61,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.error("未设置密码,请先用验证码登录");
         }
         // 检查密码是否匹配
-        if(!MD5Util.encrypt(userLoginByPasswordVo.getPassword()).equals(user.getPasswordHash()))
+        if(!MD5Util.encrypt(userLoginByPasswordVo.getPassword()).equals(user.getPasswordHash())){
             return Result.error("密码错误");
+        }
+
         Integer userId = user.getUserId();
 
         // 获取设备唯一标识、IP 地址、客户端信息等
-        String deviceHash = UUID.randomUUID().toString();  // 你可以根据设备的唯一标识生成哈希值
+        String deviceHash = userLoginByPasswordVo.getDeviceHash();
         String ipAddress = getClientIpAddress();  // 获取客户端 IP 地址 服务器根据请求自动获取的，无需客户端传递。
         String clientInfo = getClientInfo();  // 获取客户端信息
 
@@ -118,7 +120,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
 
         // 获取设备唯一标识、IP 地址、客户端信息
-        String deviceHash = UUID.randomUUID().toString();  // 可根据实际设备生成唯一标识
+        String deviceHash = userLoginByCodeVo.getDeviceHash();  // 可根据实际设备生成唯一标识UUID.randomUUID().toString()
         String ipAddress = getClientIpAddress(); // 获取客户端 IP 地址
         String clientInfo = getClientInfo(); // 获取客户端信息
 
@@ -149,8 +151,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Result<?> logout(UserLogoutVo logoutVo) {
-        if(!StpUtil.isLogin())
+        if(!StpUtil.isLogin()){
             return Result.error("未登录");
+        }
         Integer userId = logoutVo.getUserId();
         String deviceHash = logoutVo.getDeviceHash();
 
@@ -220,6 +223,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     /**
      * 每天凌晨 00:00 触发，更新用户的使用天数
      */
+    @Override
     @Scheduled(cron = "0 0 0 * * ?") // 每天 00:00 触发
     public void updateDaysUsed() {
         int updatedRows = userMapper.incrementDaysUsedForAllUsers();
@@ -238,6 +242,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.error("用户不存在");
         }
         UserInfoResponseDto userInfoResponseDto = new UserInfoResponseDto();
+        userInfoResponseDto.setUserId(user.getUserId());
         userInfoResponseDto.setUserName(user.getNickname());
         userInfoResponseDto.setPhoto(user.getAvatarUrl());
        userInfoResponseDto.setUseDate(user.getDaysUsed()+"天");

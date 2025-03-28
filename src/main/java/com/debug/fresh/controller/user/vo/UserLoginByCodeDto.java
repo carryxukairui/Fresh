@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class UserLoginByCodeDto {
-    String phone;
-    String code;
+    private String phone;
+    private String code;
+    private String deviceHash;
 }
