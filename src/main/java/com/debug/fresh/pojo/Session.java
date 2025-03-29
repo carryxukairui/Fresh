@@ -32,5 +32,4 @@ public class Session {
 
     private String clientInfo;
 
-    private Integer loginSequence;
 }

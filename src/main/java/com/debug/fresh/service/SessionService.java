@@ -14,5 +14,5 @@ public interface SessionService extends IService<Session> {
 
     boolean logoutDevice(String deviceHash);
 
-    void invalidateUserSessions(Integer userId);
+
 }

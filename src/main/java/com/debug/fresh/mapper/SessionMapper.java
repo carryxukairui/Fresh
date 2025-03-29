@@ -11,7 +11,6 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 */
 public interface SessionMapper extends BaseMapper<Session> {
 
-    Integer selectMaxLoginSequence(Long userId);
 }
 
 

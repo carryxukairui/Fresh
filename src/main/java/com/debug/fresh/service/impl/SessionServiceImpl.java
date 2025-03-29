@@ -38,7 +38,6 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
         session.setUserId(userId);
         session.setDeviceHash(deviceHash);
         session.setToken(StpUtil.getTokenValue());
-        session.setLoginSequence(getNextLoginSequence(Long.valueOf(userId)));
         session.setClientInfo(clientInfo);
         sessionMapper.insert(session);
 
@@ -66,27 +65,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
 
-    @Override
-    public void invalidateUserSessions(Integer userId) {
-        List<Session> sessionList = sessionMapper.selectList(new LambdaQueryWrapper<Session>()
-                .eq(Session::getUserId, userId)
-                .eq(Session::getIsValid, 1));
-        for (Session session : sessionList) {
-            String token = session.getToken();
-            String kickoutKey = USER_KICKOUT_PREFIX + userId + ":" + token;
-            stringRedisTemplate.opsForValue().set(kickoutKey, "kicked_out", 3600, TimeUnit.SECONDS);
-            StpUtil.kickoutByTokenValue(token);
 
-            session.setIsValid(0);
-            sessionMapper.updateById(session);
-        }
-
-    }
-
-    private Integer getNextLoginSequence(Long userId) {
-        Integer maxSeq = sessionMapper.selectMaxLoginSequence(userId);
-        return (maxSeq == null) ? 1 : maxSeq + 1;
-    }
 }
 
 

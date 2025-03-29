@@ -201,18 +201,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String passwordVersionKey = USER_PWD_VERSION_PREFIX + userId;
         // 更新 Redis 密码版本
         stringRedisTemplate.opsForValue().set(passwordVersionKey, newPasswordVersion);
-        String sessionKey = USER_SESSIONS_PREFIX + userId;
-        // 更新当前会话的密码版本号
-        StpUtil.getSession().set("password_version", newPasswordVersion);
-        // 踢出所有设备
-        List<String> sessions = stringRedisTemplate.opsForList().range(sessionKey, 0, -1);
-        if (sessions != null) {
-            for (String session : sessions) {
-                kickDeviceSession(userId, session);
-                stringRedisTemplate.opsForList().remove(sessionKey, 1, session);
-                StpUtil.logoutByTokenValue(session);
-            }
-        }
+
         return Result.success("修改密码成功");
     }
 
@@ -220,6 +209,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 用户登录成功后
         String passwordVersionKey = USER_PWD_VERSION_PREFIX + userId;
         String currentPasswordVersion = stringRedisTemplate.opsForValue().get(passwordVersionKey);
+        System.out.println("当前密码版本：" + currentPasswordVersion);
         if (currentPasswordVersion == null) {
             currentPasswordVersion = UUID.randomUUID().toString();
             stringRedisTemplate.opsForValue().set(passwordVersionKey, currentPasswordVersion);
@@ -231,11 +221,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 获取当前用户的已登录设备
         List<String> sessions = stringRedisTemplate.opsForList().range(sessionKey, 0, -1);
         if (sessions != null && sessions.size() >= 3) {
-            // 超出设备限制，剔除最早的一个
             String oldestToken = sessions.get(0);
             kickDeviceSession(userId, oldestToken);
             stringRedisTemplate.opsForList().remove(sessionKey, 1, oldestToken);
-            StpUtil.logoutByTokenValue(oldestToken);
         }
 
         stringRedisTemplate.opsForList().rightPush(sessionKey, newToken);
@@ -317,9 +305,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         int updateById = userMapper.updateById(user);
 
         if (updateById > 0) {
-            // 写入 Redis 昵称修改事件
-            String nameChangeKey = USER_NICKNAME_PREFIX + userId;
-            stringRedisTemplate.opsForValue().set(nameChangeKey, name, 1, TimeUnit.HOURS);
             return Result.success(USER_NAME_MODIFY_SUCCESS);
         } else {
             return Result.error(USER_NAME_MODIFY_FAIL);

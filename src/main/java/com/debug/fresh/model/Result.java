@@ -1,37 +1,49 @@
 package com.debug.fresh.model;
 
+import com.debug.fresh.contants.ResultCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import static com.debug.fresh.contants.ResultCode.*;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Result<T> {
-    private Integer code;//响应码，0 代表成功; 1 代表失败
-    private String message;  //响应信息 描述字符串
-    private T data; //返回的数据
+    private Integer code;
+    private String message;
+    private T data;
 
-    public static <T> Result<T> returnIsNullOrNot(T data){
-        return data != null ? Result.success(data) : Result.error("");
-    }
-    //没有消息的响应
-    public static <T> Result<T> success(T data){return new Result<T>(0,"",data);};
-    //增删改 成功响应
-    public static <T> Result<T> success(String msg) {
-        return new Result<T>(0, msg, null);
+    // 新增带状态码的静态方法
+    public static <T> Result<T> custom(int code, String msg, T data) {
+        return new Result<>(code, msg, data);
     }
 
+    // 快速构建被踢出响应
+    public static <T> Result<T> kickOut(String msg) {
+        return custom(ResultCode.KICK_OUT, msg, null);
+    }
+
+    // 快速构建密码修改响应
+    public static <T> Result<T> passwordChanged(String msg) {
+        return custom(ResultCode.PWD_CHANGED, msg, null);
+    }
+
+
+    // 保持原有方法...
+    public static <T> Result<T> success(T data) {
+        return new Result<>(ResultCode.SUCCESS, "", data);
+    }
+    public static <T> Result<T> error(String msg) {
+        return new Result<T>(ERRORS, msg, null);
+    }
     //查询 成功响应
     public static <T> Result<T> success(String msg ,T data) {
-        return new Result<T>(0, msg, data);
+        return new Result<T>(ResultCode.SUCCESS, msg, data);
     }
-
-    //失败响应
-    public static <T> Result<T> error(String msg) {
-        return new Result<T>(1, msg, null);
+    public static <T> Result<T> noUseToken(String msg) {
+        return new Result<T>(INVALID_TOKEN, msg, null);
     }
-
-    public static <T> Result<T> notLogin(String msg){return new Result<>(101,msg,null);}
-
+    public static <T> Result<T> notLogin(String msg){return new Result<>(NOT_LOGIN,msg,null);}
 }
