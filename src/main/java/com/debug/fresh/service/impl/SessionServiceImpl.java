@@ -3,14 +3,19 @@ package com.debug.fresh.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.debug.fresh.webSocket.WebSocketService;
+import com.debug.fresh.contants.RedisConstants;
 import com.debug.fresh.pojo.Session;
 import com.debug.fresh.service.SessionService;
 import com.debug.fresh.mapper.SessionMapper;
 import jakarta.annotation.Resource;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static com.debug.fresh.contants.RedisConstants.USER_KICKOUT_PREFIX;
+import static com.debug.fresh.contants.RedisConstants.USER_SESSIONS_PREFIX;
 
 
 /**
@@ -25,7 +30,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     @Resource
     private SessionMapper sessionMapper;
     @Resource
-    private WebSocketService webSocketService;
+    private StringRedisTemplate stringRedisTemplate;
     @Override
     public void createSession(Integer userId, String tokenValue, String deviceHash, String ipAddress, String clientInfo) {
         // 6. 创建会话记录
@@ -49,7 +54,12 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
         if (l==null){
             return false;
         }
-        StpUtil.logoutByTokenValue(l.getToken());
+        String token = l.getToken();
+        String sessionKey = USER_SESSIONS_PREFIX + userId;
+        // 从 Redis 中移除会话记录
+        stringRedisTemplate.opsForList().remove(sessionKey, 1, token);
+        // 使 Sa-Token 的会话失效
+        StpUtil.logoutByTokenValue(token);
         l.setIsValid(0);
         sessionMapper.updateById(l);
         return  true;
@@ -63,14 +73,8 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
                 .eq(Session::getIsValid, 1));
         for (Session session : sessionList) {
             String token = session.getToken();
-
-            // 先发送通知，确保客户端接收到消息
-            webSocketService.sendMessageToToken(token, "passwordChange", "密码已修改，请重新登录");
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            String kickoutKey = USER_KICKOUT_PREFIX + userId + ":" + token;
+            stringRedisTemplate.opsForValue().set(kickoutKey, "kicked_out", 3600, TimeUnit.SECONDS);
             StpUtil.kickoutByTokenValue(token);
 
             session.setIsValid(0);

@@ -2,9 +2,14 @@ package com.debug.fresh.service.impl;
 
 import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.lang.UUID;
+import cn.hutool.json.JSONObject;
+import cn.hutool.log.Log;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.debug.fresh.contants.RedisConstants;
 import com.debug.fresh.webSocket.WebSocketService;
 import com.debug.fresh.controller.my.Response.UserInfoResponseDto;
 import com.debug.fresh.controller.user.SmsService;
@@ -20,10 +25,18 @@ import com.debug.fresh.service.UserService;
 import com.debug.fresh.mapper.UserMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import static com.debug.fresh.contants.ErrorContants.*;
+import static com.debug.fresh.contants.RedisConstants.*;
+import static net.sf.jsqlparser.parser.feature.Feature.update;
 
 @Slf4j
 @Service
@@ -39,14 +52,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Resource
     private SmsService smsService;
     @Resource
-    private WebSocketService webSocketService;
-    @Resource
     private MembershipService membershipService;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
-    public Result loginByPassword(UserLoginByPasswordVo userLoginByPasswordVo) {
+    public Result<?> loginByPassword(UserLoginByPasswordVo userLoginByPasswordVo) {
         String phone = userLoginByPasswordVo.getPhone();
-        // 校验手机号格式，必须是 +86 开头，并且是 11 位中国手机号
+
         if (!phone.matches("^\\+86[1-9]\\d{10}$")) {
             return Result.error("手机号格式不正确，必须以 +86 开头，且为 11 位有效手机号");
         }
@@ -55,11 +68,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if (user == null) {
             return Result.error("未注册");
         }
-        // 检查密码是否已设置
         if (user.getPasswordHash() == null) {
             return Result.error("未设置密码,请先用验证码登录");
         }
-        // 检查密码是否匹配
         if(!MD5Util.encrypt(userLoginByPasswordVo.getPassword()).equals(user.getPasswordHash())){
             return Result.error("密码错误");
         }
@@ -68,11 +79,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         // 获取设备唯一标识、IP 地址、客户端信息等
         String deviceHash = userLoginByPasswordVo.getDeviceHash();
-        String ipAddress = getClientIpAddress();  // 获取客户端 IP 地址 服务器根据请求自动获取的，无需客户端传递。
-        String clientInfo = getClientInfo();  // 获取客户端信息
-
-        handleMultiDeviceLogin(user.getUserId(), deviceHash);
+        String ipAddress = getClientIpAddress();
+        String clientInfo = getClientInfo();
         StpUtil.login(userId);
+        handleMultiDeviceLogin(user.getUserId(), deviceHash);
         service.createSession(userId,StpUtil.getTokenValue(),deviceHash,ipAddress,clientInfo);
 
         return Result.success("登录成功", StpUtil.getTokenValue());
@@ -94,11 +104,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     @Override
-    public Result loginByCode(UserLoginByCodeDto userLoginByCodeVo) {
+    public Result<?> loginByCode(UserLoginByCodeDto userLoginByCodeVo) {
         String phone = userLoginByCodeVo.getPhone();
         String code = userLoginByCodeVo.getCode();
         String returnData = "老用户";
-        // 校验手机号格式，必须是 +86 开头，并且是 11 位中国手机号
+
         if (!phone.matches("^\\+86[1-9]\\d{10}$")) {
             return Result.error("手机号格式不正确，必须以 +86 开头，且为 11 位有效手机号");
         }
@@ -108,7 +118,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.error("验证码错误或已过期");
         }
 
-        // 查询用户，若不存在则创建
         User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getPhone, purePhone));
         if (user == null) {
             user = new User();
@@ -119,14 +128,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
 
         // 获取设备唯一标识、IP 地址、客户端信息
-        String deviceHash = userLoginByCodeVo.getDeviceHash();  // 可根据实际设备生成唯一标识UUID.randomUUID().toString()
-        String ipAddress = getClientIpAddress(); // 获取客户端 IP 地址
-        String clientInfo = getClientInfo(); // 获取客户端信息
+        String deviceHash = userLoginByCodeVo.getDeviceHash();
+        String ipAddress = getClientIpAddress();
+        String clientInfo = getClientInfo();
 
+
+        StpUtil.login(user.getUserId());
         // 处理多设备登录
         handleMultiDeviceLogin(user.getUserId(), deviceHash);
 
-        StpUtil.login(user.getUserId());
         service.createSession(user.getUserId(), StpUtil.getTokenValue(), deviceHash, ipAddress, clientInfo);
 
         smsService.deleteCode(purePhone);
@@ -160,7 +170,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return Result.error("userId和deviceHash不能为空");
         }
 
-        boolean success = service.logoutDevice(deviceHash);  // 这里调用 sessionService 来处理
+        boolean success = service.logoutDevice(deviceHash);
         if (success) {
             return Result.success("注销成功");
         } else {
@@ -186,43 +196,65 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         user.setPasswordHash(nowPassword);
         userMapper.updateById(user);
 
-        //所有设备退出登录
-        service.invalidateUserSessions(userId);
+        // 生成新的密码版本
+        String newPasswordVersion  = UUID.randomUUID().toString();
+        String passwordVersionKey = USER_PWD_VERSION_PREFIX + userId;
+        // 更新 Redis 密码版本
+        stringRedisTemplate.opsForValue().set(passwordVersionKey, newPasswordVersion);
+        String sessionKey = USER_SESSIONS_PREFIX + userId;
+        // 更新当前会话的密码版本号
+        StpUtil.getSession().set("password_version", newPasswordVersion);
+        // 踢出所有设备
+        List<String> sessions = stringRedisTemplate.opsForList().range(sessionKey, 0, -1);
+        if (sessions != null) {
+            for (String session : sessions) {
+                kickDeviceSession(userId, session);
+                stringRedisTemplate.opsForList().remove(sessionKey, 1, session);
+                StpUtil.logoutByTokenValue(session);
+            }
+        }
         return Result.success("修改密码成功");
     }
 
     private void handleMultiDeviceLogin(Integer userId, String newDeviceHash) {
-        // 获取当前有效会话数
-        Long activeCount = sessionMapper.selectCount(new QueryWrapper<Session>()
-                .eq("user_id", userId)
-                .eq("is_valid", 1));
-
-        // 已达上限时踢出最早会话
-        if (activeCount >= SaManager.getConfig().getMaxLoginCount()) {
-            Session oldest = sessionMapper.selectOne(new LambdaQueryWrapper<Session>()
-                    .eq(Session::getUserId, userId)
-                    .eq(Session::getIsValid, 1)
-                    .orderByAsc(Session::getLoginSequence)
-                    .last("LIMIT 1"));
-
-            if (oldest != null) {
-                String token = oldest.getToken();
-                // 先发送通知给被踢设备（单设备通知）
-                webSocketService.sendMessageToToken(token, "kickOut",
-                        "您已被强制下线，如非本人操作，请修改密码！");
-
-                // 2. 等待消息发送完成（建议500ms）
-                try { Thread.sleep(500); } catch (InterruptedException e) {}
-
-                // 3. 再执行踢出
-                StpUtil.kickoutByTokenValue(token);
-                oldest.setIsValid(0);
-                sessionMapper.updateById(oldest);
-            }
+        // 用户登录成功后
+        String passwordVersionKey = USER_PWD_VERSION_PREFIX + userId;
+        String currentPasswordVersion = stringRedisTemplate.opsForValue().get(passwordVersionKey);
+        if (currentPasswordVersion == null) {
+            currentPasswordVersion = UUID.randomUUID().toString();
+            stringRedisTemplate.opsForValue().set(passwordVersionKey, currentPasswordVersion);
         }
+        StpUtil.getSession().set("password_version", currentPasswordVersion);
+
+        String sessionKey = USER_SESSIONS_PREFIX + userId;
+        String newToken = StpUtil.getTokenValue();
+        // 获取当前用户的已登录设备
+        List<String> sessions = stringRedisTemplate.opsForList().range(sessionKey, 0, -1);
+        if (sessions != null && sessions.size() >= 3) {
+            // 超出设备限制，剔除最早的一个
+            String oldestToken = sessions.get(0);
+            kickDeviceSession(userId, oldestToken);
+            stringRedisTemplate.opsForList().remove(sessionKey, 1, oldestToken);
+            StpUtil.logoutByTokenValue(oldestToken);
+        }
+
+        stringRedisTemplate.opsForList().rightPush(sessionKey, newToken);
+        stringRedisTemplate.expire(sessionKey, 30, TimeUnit.DAYS);
+
     }
 
-
+    public void kickDeviceSession(Integer userId, String targetToken) {
+        String kickoutKey = USER_KICKOUT_PREFIX + userId + ":" + targetToken;
+        stringRedisTemplate.opsForValue().set(kickoutKey, "true");
+        Session session = sessionMapper.selectOne(new LambdaQueryWrapper<Session>()
+                .eq(Session::getUserId, userId)
+                .eq(Session::getIsValid, 1)
+                .eq(Session::getToken, targetToken));
+        if (session != null){
+            session.setIsValid(0);
+            sessionMapper.updateById(session);
+        }
+    }
     /**
      * 每天凌晨 00:00 触发，更新用户的使用天数
      */
@@ -285,8 +317,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         int updateById = userMapper.updateById(user);
 
         if (updateById > 0) {
-            // 通知该用户所有在线设备：昵称已更新
-            webSocketService.sendMessageToUser(userId, "nicknameUpdate", "您的昵称已修改为：" + name);
+            // 写入 Redis 昵称修改事件
+            String nameChangeKey = USER_NICKNAME_PREFIX + userId;
+            stringRedisTemplate.opsForValue().set(nameChangeKey, name, 1, TimeUnit.HOURS);
             return Result.success(USER_NAME_MODIFY_SUCCESS);
         } else {
             return Result.error(USER_NAME_MODIFY_FAIL);

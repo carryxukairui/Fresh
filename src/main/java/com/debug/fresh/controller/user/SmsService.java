@@ -73,7 +73,8 @@ public class SmsService {
         if (!expectedSign.equals(phone+sign)) {
             return -2;
         }
-        String code = String.valueOf(new Random().nextInt(900000) + 100000); // 生成 6 位随机验证码
+
+        String code = String.valueOf(new Random().nextInt(900000) + 100000);
         try {
             com.aliyun.dysmsapi20170525.Client client = createClient();
             SendSmsRequest request = new SendSmsRequest()
